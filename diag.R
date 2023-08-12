@@ -25,9 +25,9 @@ water_abs <- read_excel('freshwater_abstraction.xlsx', sheet = 'Sheet 1',
   select(!c(seq(3,19,2))) %>% 
   rename(country = 'TIME')
 
-ghg <- read_excel('net_ghg_emissions_sdg_13.xlsx', sheet = 'Sheet 1', 
-                  range = 'A10:BL41', na = ':') %>% 
-  select(!c(seq(3,63,2))) %>% 
+ghg <- read_excel('air_emissions.xlsx', sheet = 'Sheet 1', 
+                  range = 'A10:T43', na = ':') %>% 
+  select(!c(seq(3,19,2))) %>% 
   rename(country = 'TIME')
 
 nrgy <- read_excel('primary_energy_cons_sdg_07.xlsx', sheet = 'Sheet 1',
@@ -61,8 +61,8 @@ water_abs <- water_abs %>%
                values_to = 'million_m3_abs')
 
 ghg <- ghg %>% 
-  pivot_longer(cols = `1990`:`2021`, names_to = 'year', 
-               values_to = 'ghg_emissions_rate')
+  pivot_longer(cols = `2012`:`2021`, names_to = 'year', 
+               values_to = 'air_emissions')
 
 nrgy <- nrgy %>% 
   pivot_longer(cols = `2000`:`2021`, names_to = 'year', 
@@ -74,7 +74,145 @@ wstwater <- wstwater %>%
 
 
 
-# Filtering countries of interest -----------------------------------------
+
+# Full join the datasets --------------------------------------------------
+
+
+df <- gdp %>%
+  full_join(y = ghg, by = c('country', 'year')) %>% 
+  full_join(y = nrgy, by = c('country', 'year')) %>% 
+  full_join(y = waste_gen, by = c('country', 'year')) %>% 
+  full_join(y = water_abs, by = c('country', 'year')) %>% 
+  full_join(y = wstwater, by = c('country', 'year'))
+
+
+
+df <- df[as.numeric(df$year >= 2012) & as.numeric(df$year <= 2022),]
+
+
+# Handling missing values -------------------------------------------------
+
+
+  # Missing values in waste_gen variable
+
+for (i in 2:(nrow(df) - 1)) {
+  if (is.na(df$tonnes_waste[i])) {
+    if (!is.na(df$tonnes_waste[i - 1]) && !is.na(df$tonnes_waste[i + 1])) {
+      df$tonnes_waste[i] <- (df$tonnes_waste[i - 1] + df$tonnes_waste[i + 1])/2
+    }
+  }
+}
+
+
+  # Missing values in ghg variable (air_emissions)
+
+for (i in 1:nrow(df)) {
+  if (df$year[i] == '2022') {
+    df <- df[-i, ]
+  }
+}
+
+
+df[df$country == 'United Kingdom' & df$year == '2020', "air_emissions"] <- 322169811
+df[df$country == 'United Kingdom' & df$year == '2021', "air_emissions"] <- 341500000
+
+
+
+
+# Filtering countries with not enough data --------------------------------
+
+plyr::count(df$country)
+
+no_data <- c('Ireland','Italy','Liechtenstein','Switzerland','Iceland',
+             'Portugal','Norway','Finland', 'Bosnia and Herzegovina', 
+             'Montenegro', 'North Macedonia', 'Albania')
+
+df <- df %>% 
+  filter(!(country %in% no_data))
+
+
+  # Getting a dataframe with every row with na values
+rows_with_na <- df[apply(is.na(df), 1, any), ]
+
+
+
+# Removing missing values again -------------------------------------------
+
+df <- df %>% arrange(country, year)
+
+
+for (i in 2:(nrow(df) - 1)) {
+  if (is.na(df$million_m3_abs[i]) &&
+      df$country[i] == df$country[i - 1] &&
+      df$country[i] == df$country[i + 1]) {
+    
+    # Perform linear interpolation
+    df$million_m3_abs[i] <- (df$million_m3_abs[i - 1] + df$million_m3_abs[i + 1]) / 2
+  }
+}
+
+
+for (i in 2:(nrow(df) - 1)) {
+  if (is.na(df$million_m3_disch[i]) &&
+      df$country[i] == df$country[i - 1] &&
+      df$country[i] == df$country[i + 1]) {
+    
+    # Perform linear interpolation
+    df$million_m3_disch[i] <- (df$million_m3_disch[i - 1] + df$million_m3_disch[i + 1]) / 2
+  }
+}
+
+
+
+
+# Panel data structures ---------------------------------------------------
+
+library(plm)
+
+df1 <- plm::pdata.frame(x = df, index = c('country', 'year'), drop.index = TRUE)
+
+head(df1)
+str(df1)
+
+head(df1)
+
+
+df1 <- df1 %>% 
+  rename(
+    prim_energy_cons = million_ton_oil_eq,
+    solid_wastes = tonnes_waste,
+    freshwater_abs = million_m3_abs,
+    wastewater_dis = million_m3_disch
+  )
+
+
+  # Pooled data
+
+df_pool <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                                      solid_wastes + freshwater_abs +
+                                      wastewater_dis,
+                    data = df1, model = 'pooling')
+summary(df_pool)
+
+
+
+  # Fixed Effects model
+
+df_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                    solid_wastes + freshwater_abs +
+                    wastewater_dis,
+                  data = df1, model = 'within')
+summary(df_fe)
+
+
+
+  # Compare pool vs fixed effects models
+
+plm::pFtest(df_fe, df_pool)
+
+
+
+ # Filtering countries of interest -----------------------------------------
 
 countries <- c('Germany','United Kingdom','France','Italy','Spain','Switzerland',
                'Bulgaria','Romania','Greece','Hungary','Serbia')
@@ -147,6 +285,11 @@ df <- gdp %>%
 df$year <- as.numeric(df$year)
 
 str(df)
+
+
+
+
+
 
 # Filling NA values -------------------------------------------------------
 
