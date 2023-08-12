@@ -192,6 +192,7 @@ df_pool <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                                       solid_wastes + freshwater_abs +
                                       wastewater_dis,
                     data = df1, model = 'pooling')
+
 summary(df_pool)
 
 
@@ -202,6 +203,7 @@ df_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                     solid_wastes + freshwater_abs +
                     wastewater_dis,
                   data = df1, model = 'within')
+
 summary(df_fe)
 
 
@@ -211,6 +213,46 @@ summary(df_fe)
 plm::pFtest(df_fe, df_pool)
 
 
+
+  # Random effects models - different methods
+  
+    # Wallace-Hussain method
+df_re_walhus <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                      solid_wastes + freshwater_abs +
+                      wastewater_dis,
+                      data = df1, model = 'random', random.method = 'walhus')
+
+summary(df_re_walhus)
+
+
+    # Amemiya method
+
+df_re_amemiya <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                            solid_wastes + freshwater_abs +
+                            wastewater_dis,
+                          data = df1, model = 'random', random.method = 'amemiya')
+
+summary(df_re_amemiya)
+
+
+    # Nerlove method
+
+df_re_nerlove <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                            solid_wastes + freshwater_abs +
+                            wastewater_dis,
+                          data = df1, model = 'random', random.method = 'nerlove')
+
+summary(df_re_nerlove)
+
+
+  # Hausman test: checking models' consistency
+
+    # Null hypothesis - Ho: Random effects model is consistent
+    # Alternative hypothesis - Ha: Fixed effects model is consistent
+
+plm::phtest(df_re_walhus, df_fe)
+plm::phtest(df_re_amemiya, df_fe)
+plm::phtest(df_re_nerlove, df_fe)
 
  # Filtering countries of interest -----------------------------------------
 
