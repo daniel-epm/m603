@@ -2,6 +2,7 @@
 
 library(readxl)
 library(tidyverse)
+library(zoo)  # function na.approx for handling missing data
 library(ggplot2)
 library(scales)
 
@@ -83,11 +84,10 @@ df <- gdp %>%
   full_join(y = nrgy, by = c('country', 'year')) %>% 
   full_join(y = waste_gen, by = c('country', 'year')) %>% 
   full_join(y = water_abs, by = c('country', 'year')) %>% 
-  full_join(y = wstwater, by = c('country', 'year'))
+  full_join(y = wstwater, by = c('country', 'year')) %>% 
+  filter(as.numeric(df$year >= 2012) & as.numeric(df$year <= 2022))
 
 
-
-df <- df[as.numeric(df$year >= 2012) & as.numeric(df$year <= 2022),]
 
 
 # Handling missing values -------------------------------------------------
@@ -111,10 +111,6 @@ for (i in 1:nrow(df)) {
     df <- df[-i, ]
   }
 }
-
-
-df[df$country == 'United Kingdom' & df$year == '2020', "air_emissions"] <- 322169811
-df[df$country == 'United Kingdom' & df$year == '2021', "air_emissions"] <- 341500000
 
 
 
@@ -161,7 +157,6 @@ for (i in 2:(nrow(df) - 1)) {
     df$million_m3_disch[i] <- (df$million_m3_disch[i - 1] + df$million_m3_disch[i + 1]) / 2
   }
 }
-
 
 
 
@@ -253,99 +248,10 @@ summary(df_re_nerlove)
 plm::phtest(df_re_walhus, df_fe)
 plm::phtest(df_re_amemiya, df_fe)
 plm::phtest(df_re_nerlove, df_fe)
-
- # Filtering countries of interest -----------------------------------------
-
-countries <- c('Germany','United Kingdom','France','Italy','Spain','Switzerland',
-               'Bulgaria','Romania','Greece','Hungary','Serbia')
-
-cat2 <- c('Bulgaria','Romania','Greece','Hungary','Serbia')
-
-
-gdp <- gdp %>% 
-  group_by(country, year) %>% 
-  filter(country %in% countries) %>% 
-  mutate(category = if_else(country %in% cat2, 2, 1),
-         category = as.factor(category)) %>% 
-  ungroup()
-
-
-ghg <- ghg %>% 
-  group_by(country, year) %>% 
-  filter(country %in% countries) %>% 
-  mutate(category = if_else(country %in% cat2, 2, 1),
-         category = as.factor(category)) %>% 
-  ungroup()
   
 
-nrgy <- nrgy %>% 
-  group_by(country, year) %>% 
-  filter(country %in% countries) %>% 
-  mutate(category = if_else(country %in% cat2, 2, 1),
-         category = as.factor(category)) %>% 
-  ungroup()
+plm(model)
 
-
-waste_gen <- waste_gen %>% 
-  group_by(country, year) %>% 
-  filter(country %in% countries) %>% 
-  mutate(category = if_else(country %in% cat2, 2, 1),
-         category = as.factor(category)) %>% 
-  ungroup()
-
-
-water_abs <- water_abs %>% 
-  group_by(country, year) %>% 
-  filter(country %in% countries) %>% 
-  mutate(category = if_else(country %in% cat2, 2, 1),
-         category = as.factor(category)) %>% 
-  ungroup()
-
-
-wstwater <- wstwater %>% 
-  group_by(country, year) %>% 
-  filter(country %in% countries) %>% 
-  mutate(category = if_else(country %in% cat2, 2, 1),
-         category = as.factor(category)) %>% 
-  ungroup()
-                                  
-
-
-
-# Join de los dataframes --------------------------------------------------
-
-
-df <- gdp %>% 
-  left_join(y = ghg, by = c('country', 'year')) %>% 
-  left_join(y = nrgy, by = c('country', 'year')) %>% 
-  left_join(y = waste_gen, by = c('country', 'year')) %>% 
-  left_join(y = water_abs, by = c('country', 'year')) %>% 
-  left_join(y = wstwater, by = c('country', 'year')) %>% 
-  relocate(category, .before = 'gdp_growth_rate')
-
-
-df$year <- as.numeric(df$year)
-
-str(df)
-
-
-
-
-
-
-# Filling NA values -------------------------------------------------------
-
-
-df$tonnes_waste[2:10] <- zoo::na.approx(df$tonnes_waste[2:10])
-df$tonnes_waste[14:22] <- zoo::na.approx(df$tonnes_waste[14:22])
-df$tonnes_waste[26:34] <- zoo::na.approx(df$tonnes_waste[26:34])
-df$tonnes_waste[38:46] <- zoo::na.approx(df$tonnes_waste[38:46])
-df$tonnes_waste[50:58] <- zoo::na.approx(df$tonnes_waste[50:58])
-df$tonnes_waste[62:70] <- zoo::na.approx(df$tonnes_waste[62:70])
-df$tonnes_waste[74:82] <- zoo::na.approx(df$tonnes_waste[74:82])
-df$tonnes_waste[86:94] <- zoo::na.approx(df$tonnes_waste[86:94])
-df$tonnes_waste[110:116] <- zoo::na.approx(df$tonnes_waste[110:116])
-df$tonnes_waste[122:130] <- zoo::na.approx(df$tonnes_waste[122:130])
 
 
 
