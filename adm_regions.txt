@@ -1,0 +1,39 @@
+Region,State
+Stuttgart,Baden-Württemberg
+Karlsruhe,Baden-Württemberg
+Freiburg,Baden-Württemberg
+Tübingen,Baden-Württemberg
+Oberbayern,Bavaria
+Niederbayern,Bavaria
+Oberpfalz,Bavaria
+Oberfranken,Bavaria
+Mittelfranken,Bavaria
+Unterfranken,Bavaria
+Schwaben,Bavaria
+Berlin,Berlin
+Brandenburg,Brandenburg
+Bremen,Bremen
+Hamburg,Hamburg
+Darmstadt,Hesse
+Gießen,Hesse
+Kassel,Hesse
+Mecklenburg-Vorpommern,Mecklenburg-Vorpommern
+Braunschweig,Lower Saxony
+Hannover,Lower Saxony
+Lüneburg,Lower Saxony
+Weser-Ems,Lower Saxony
+Düsseldorf,North Rhine-Westphalia
+Köln,North Rhine-Westphalia
+Münster,North Rhine-Westphalia
+Detmold,North Rhine-Westphalia
+Arnsberg,North Rhine-Westphalia
+Koblenz,Rhineland-Palatinate
+Trier,Rhineland-Palatinate
+Rheinhessen-Pfalz,Rhineland-Palatinate
+Saarland,Saarland
+Dresden,Saxony
+Chemnitz,Saxony
+Leipzig,Saxony
+Sachsen-Anhalt,Saxony-Anhalt
+Schleswig-Holstein,Schleswig-Holstein
+Thüringen,Thuringia
