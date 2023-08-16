@@ -3,6 +3,7 @@
 library(readxl)
 library(tidyverse)
 library(zoo)  # function na.approx for handling missing data
+library(plm)
 library(ggplot2)
 library(scales)
 
@@ -162,7 +163,6 @@ for (i in 2:(nrow(df) - 1)) {
 
 # Panel data structures ---------------------------------------------------
 
-library(plm)
 
 df1 <- plm::pdata.frame(x = df, index = c('country', 'year'), drop.index = TRUE)
 
