@@ -205,6 +205,8 @@ pov_risk <- pov_risk %>%
          last_year = year == tail(year,1))
 
 
+range(pov_risk$poverty_risk, na.rm = TRUE)
+
 top8_pov_risk <- pov_risk %>% 
   filter(poverty_risk < quantile(poverty_risk, probs = 0.25, na.rm = TRUE)) %>% 
   select(geop_entity) %>% 
@@ -234,10 +236,11 @@ pov_risk %>%
                                                     x = c(-0.05,0)), size = 7,
             show.legend = F) +
   coord_cartesian(xlim = c(min(pov_risk$year), max(pov_risk$year) + 0.3)) +
+  scale_y_continuous(breaks = seq(12,30, 1), limits = c(12,20)) +
   scale_colour_brewer(palette = 'Set1') +
   labs(x = "", y = "Poverty and social exclusion risk [%]", colour = 'State') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, size = 19, vjust = 0.4,
+  theme(axis.text.x = element_text(angle = 0, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 15, l = 8, unit = 'pt')),
@@ -252,6 +255,60 @@ pov_risk %>%
   
 
   # Plot 4 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+
+
+unemployment <- unemployment %>% 
+  left_join(adm_reg, by = 'geop_entity') %>% 
+  mutate(year = as.numeric(year)) %>% 
+  arrange(geop_entity, year) %>% 
+  mutate(last_year = year == tail(.$year, 1),
+         u8_2005 = if_else(.$year == 2005 & .$unempl_rate < 8, TRUE, FALSE))
+
+
+unemployment <- unemployment %>% 
+  group_by(geop_entity) %>%
+  filter(any(year == 2005 & unempl_rate < 8)) %>%
+  ungroup()
+
+
+unemployment %>% 
+  ggplot(mapping = aes(x = year, y = unempl_rate, colour = state, 
+                       group = geop_entity)) +
+  geom_line(lwd = 1.2) +
+  geom_text(data = filter(unemployment, last_year == TRUE &
+                            (geop_entity %in% c('Oberbayern', 'Freiburg'))),
+            aes(label = geop_entity), hjust = -0.35, size = 7,
+            position = position_nudge(y = c(0.075, -0.09)), show.legend = F) +
+  geom_text(data = filter(unemployment, last_year == TRUE &
+                            (geop_entity %in% c('Schwaben', 'Tübingen'))),
+            aes(label = geop_entity), hjust = -0.1, size = 7,
+            position = position_nudge(y = c(0.15, -0.15)), show.legend = F) +
+  geom_text(data = filter(unemployment, last_year == TRUE &
+                            !(geop_entity %in% c('Oberbayern', 'Freiburg',
+                                                 'Schwaben', 'Tübingen'))),
+            aes(label = geop_entity), hjust = -0.18, size = 7, show.legend = F) +
+  coord_cartesian(xlim = c(min(unemployment$year), 
+                          max(unemployment$year) + 2.5)) +
+  scale_x_continuous(breaks = seq(2000,2022,2)) +
+  scale_y_continuous(breaks = seq(2,8,1)) +
+  labs(x = "", y = "Unemployment rate [%]", colour = "State") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
+                                   margin = margin(b = 15)),
+        axis.title.y = element_text(size = 22, hjust = 0.7, 
+                                    margin = margin(r = 15, l = 8, unit = 'pt')),
+        axis.text.y = element_text(size = 20),
+        plot.title.position = 'panel',
+        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
+        legend.position = 'right', legend.margin = margin(t = -8),
+        title = element_text(size = 20), legend.text = element_text(size = 19), 
+        panel.background = element_rect(fill = 'gray82')) +
+  guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
+    
+
+
+
+
 
 
 
