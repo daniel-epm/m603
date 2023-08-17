@@ -464,7 +464,7 @@ freight_tr %>%
   scale_colour_brewer(palette = 'Set1') +
   coord_cartesian(xlim = c(min(freight_tr$year) + 0.5,
                            max(freight_tr$year + 1.3))) +
-  labs(x = "", y = "", 
+  labs(x = "", y = "Air transport of freight [x1000 ton]", 
        colour = "State") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
