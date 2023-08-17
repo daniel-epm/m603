@@ -2,6 +2,8 @@
 library(readxl)
 library(tidyverse)
 library(ggplot2)
+library(scales)
+
 
 
 setwd('D:/Daniel/msc_applied_ds/t3_dissertation/data/alt_currencies/')
@@ -65,7 +67,8 @@ educ_train <- read_excel('education_training_participation_rate.xlsx',
   rename(geop_entity = TIME) %>% 
   mutate_at(.vars = as.character(seq(2000,2022,1)), as.numeric) %>% 
   pivot_longer(cols = `2000`:`2022`, names_to = 'year', 
-               values_to = 'educ&train')
+               values_to = 'educ&train') %>% 
+  janitor::clean_names()
 
 
 agric_acc <- read_excel('economic_accounts_agriculture_germany.xlsx', 
@@ -84,15 +87,14 @@ unemployment <- read_excel('unemployment_rates_germany.xlsx', sheet = 'Sheet 1',
   pivot_longer(cols = `1999`:`2022`, names_to = 'year', values_to = 'unempl_rate')
 
 
-
-
-# Plots -------------------------------------------------------------------
-
-
 adm_reg <- read.table(file = './../../scripts/adm_regions.txt', sep = ',', 
                       header = TRUE) %>% 
   rename(geop_entity = Region) %>% 
   janitor::clean_names()
+
+
+
+# Plots -------------------------------------------------------------------
 
 
 gdp_nuts2 <-  gdp_nuts2 %>% 
@@ -122,8 +124,7 @@ tail(unique(gdp_nuts2$year), n = 2)[2]
 
 RColorBrewer::display.brewer.all()
 
-x11()
-dev.off()
+
 
 
   # Plot 1 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -307,8 +308,126 @@ unemployment %>%
     
 
 
+  # Plot 5 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
+agric_acc <- agric_acc %>% 
+  left_join(adm_reg, by = 'geop_entity') %>% 
+  mutate(year = as.numeric(year),
+         last_year = year == max(agric_acc$year)) %>% 
+  filter(agriculture_accounts >= 2200) %>% 
+  group_by(geop_entity) %>% 
+  filter(all(c(2011:2020 %in% year))) %>% 
+  ungroup()
+
+
+
+agric_acc %>% 
+  ggplot(aes(x = year, y = agriculture_accounts, colour = state, 
+             group = geop_entity)) +
+  geom_line(lwd = 2) +
+  geom_text(data = filter(agric_acc, last_year == TRUE &
+                            (geop_entity %in% c('Oberbayern', 
+                                                'Mecklenburg-Vorpommern'))),
+            aes(label = geop_entity), size = 7, show.legend = F,
+            position = position_nudge(y = c(-100, 60), x = c(1.5,0.85))) + 
+  geom_text(data = filter(agric_acc, last_year == TRUE &
+                            (geop_entity %in% c('Münster','Sachsen-Anhalt'))),
+            aes(label = geop_entity), hjust = -0.05, size = 7,
+            position = position_nudge(y = c(150, -150)), show.legend = F) +   
+  geom_text(data = filter(agric_acc, last_year == TRUE & 
+                            !(geop_entity %in% c('Oberbayern', 
+                                                 'Mecklenburg-Vorpommern',
+                                                 'Münster','Sachsen-Anhalt'))),
+            aes(label = geop_entity), hjust = -0.1, vjust = 0, size = 7, 
+            show.legend = F) +
+  coord_cartesian(xlim = c(min(agric_acc$year), 
+                           max(agric_acc$year) + 2.5)) +
+  scale_x_continuous(breaks = seq(2011,2020,1)) +
+  scale_y_continuous(breaks = seq(2000,7500,500), 
+                     labels = label_number(scale = 1/1000, accuracy = 0.1)) +
+  labs(x = "", y = expression("Economic accounts for agriculture [billion €]"), 
+       colour = "State") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
+                                   margin = margin(b = 15)),
+        axis.title.y = element_text(size = 22, hjust = 0.7, 
+                                    margin = margin(r = 15, l = 8, unit = 'pt')),
+        axis.text.y = element_text(size = 20),
+        plot.title.position = 'panel',
+        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
+        legend.position = 'right', legend.margin = margin(t = -8),
+        title = element_text(size = 20), legend.text = element_text(size = 19), 
+        panel.background = element_rect(fill = 'gray82')) +
+  guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
+  
+
+
+  # Plot 6 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+
+educ_train <- educ_train %>% 
+  left_join(adm_reg, by = 'geop_entity') %>% 
+  mutate(year = as.numeric(year),
+         last_year = year == max(year)) %>%
+  group_by(geop_entity) %>% 
+  arrange(geop_entity, year) %>% 
+  filter(!any(is.na(educ_train)),
+         all(c(2000:2022 %in% year)))
+
+
+educ_train <- educ_train %>% 
+  group_by(geop_entity) %>% 
+  filter(mean(educ_train) >= quantile(.$educ_train, probs = 0.55)) %>% 
+  filter(!(geop_entity %in% c('Dresden', 'Tübingen')))
+
+
+sum(educ_train[educ_train$geop_entity == 'Oberbayern',3]) / nrow(educ_train[educ_train$geop_entity == 'Oberbayern',3])
+quantile(educ_train$educ_train, probs = 0.55)
+
+
+
+educ_train %>% 
+  ggplot(aes(x = year, y = educ_train, colour = state, group = geop_entity)) +
+  geom_line(lwd = 2) +
+  geom_text(data =  filter(educ_train, last_year == TRUE & 
+                             (geop_entity %in% c('Stuttgart','Hamburg'))), 
+            mapping = aes(label = geop_entity), hjust = -0.071, size = 7,
+            position = position_nudge(y = c(0.2,-0.2)), show.legend = F) +               
+  geom_text(data =  filter(educ_train, last_year == TRUE & 
+                             (geop_entity %in% c('Braunschweig','Darmstadt'))),
+            mapping = aes(label = geop_entity), hjust = -0.1, size = 7,
+            position = position_nudge(y = c(0.18,-0.07), x = c(-0.2,0.2)),
+            show.legend = F) +
+  geom_text(data =  filter(educ_train, last_year == TRUE & 
+                             (geop_entity %in% c('Köln','Oberbayern'))),
+            mapping = aes(label = geop_entity), hjust = -0.1, size = 7,
+            position = position_nudge(y = c(0.07,0.02), x = c(0.2,0.2)),
+            show.legend = F) +
+  geom_text(data =  filter(educ_train, last_year == TRUE & 
+                             !(geop_entity %in% c('Stuttgart','Hamburg',
+                                                 'Braunschweig','Darmstadt',
+                                                 'Köln','Oberbayern'))), 
+            mapping = aes(label = geop_entity), hjust = -0.071, size = 7,
+            position = position_nudge(y = c(0.2,-0.2)), check_overlap = T,
+            show.legend = F) +
+  coord_cartesian(xlim = c(min(educ_train$year) + 0.7, max(educ_train$year) + 2)) +
+  scale_colour_brewer(palette = 'Set1') +
+  scale_x_continuous(breaks = seq(2000,2022,2)) +
+  scale_y_continuous(breaks = seq(4,13,1)) +
+  labs(x = "", y = "Participation rate in education and training [%]", 
+       colour = "State") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
+                                   margin = margin(b = 15)),
+        axis.title.y = element_text(size = 22, hjust = 0.7, 
+                                    margin = margin(r = 15, l = 8, unit = 'pt')),
+        axis.text.y = element_text(size = 20),
+        plot.title.position = 'panel',
+        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
+        legend.position = 'right', legend.margin = margin(t = -8),
+        title = element_text(size = 20), legend.text = element_text(size = 19), 
+        panel.background = element_rect(fill = 'gray82')) +
+  guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
 
 
 
