@@ -431,3 +431,55 @@ educ_train %>%
 
 
 
+  # Plot 7 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+
+
+freight_tr <- freight_tr %>%
+  left_join(adm_reg, by = 'geop_entity') %>% 
+  mutate(year = as.numeric(year),
+         last_year = year == max(year))
+
+
+freight_tr <- freight_tr %>% 
+  group_by(geop_entity) %>% 
+  arrange(geop_entity, year) %>% 
+  filter(all(freight_transport > 5)) 
+
+freight_tr %>% 
+  group_by(geop_entity) %>% 
+  filter(all(c(2010:2021) %in% year)) %>% 
+  ggplot(aes(x = year, y = freight_transport, colour = state, 
+             group = geop_entity))+
+  geom_line(lwd = 1) +
+  geom_text(data = filter(freight_tr, last_year == T & 
+                            (geop_entity %in% c('Düsseldorf','Hamburg'))),
+            mapping = aes(label = geop_entity), size = 7, show.legend = F,
+            position = position_nudge(y = c(0.02,-0.05), x = c(0.65,0.6))) +
+  geom_text(data = filter(freight_tr, last_year == T & 
+                            !(geop_entity %in% c('Düsseldorf','Hamburg'))),
+            mapping = aes(label = geop_entity), size = 7, show.legend = F,
+            hjust = -0.2) +
+  scale_x_continuous(breaks = seq(2010,2022,2)) +
+  scale_y_log10(breaks = c(5,10,30,50,100,300,500,1000,2000,3000)) +
+  scale_colour_brewer(palette = 'Set1') +
+  coord_cartesian(xlim = c(min(freight_tr$year) + 0.5,
+                           max(freight_tr$year + 1.3))) +
+  labs(x = "", y = "", 
+       colour = "State") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
+                                   margin = margin(b = 15)),
+        axis.title.y = element_text(size = 22, hjust = 0.7, 
+                                    margin = margin(r = 15, l = 8, unit = 'pt')),
+        axis.text.y = element_text(size = 20),
+        plot.title.position = 'panel',
+        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
+        legend.position = 'right', legend.margin = margin(t = -8),
+        title = element_text(size = 20), legend.text = element_text(size = 19), 
+        panel.background = element_rect(fill = 'gray82')) +
+  guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
+
+
+
+
+
