@@ -14,7 +14,7 @@ setwd('D:/Daniel/msc_applied_ds/t3_dissertation/data/diagnosis/')
 
 gdp <- read_excel('gdp_growth_rate.xlsx', sheet = 'Sheet 1', range = 'A9:Y47',
                   na = ':') %>% 
-  select(-c(3,5,7,9,11,13,15,17,19,21,23,25)) %>% 
+  select(-c(seq(3,25,2))) %>%
   rename(country = 'TIME')
 
 waste_gen <- read_excel('waste_generation.xlsx', sheet = 'Sheet 1', 
