@@ -8,6 +8,7 @@ library(ggplot2)
 library(scales)
 
 
+
 # Loading datasets --------------------------------------------------------
 
 setwd('D:/Daniel/msc_applied_ds/t3_dissertation/data/diagnosis/')
@@ -85,7 +86,9 @@ df <- gdp %>%
   full_join(y = nrgy, by = c('country', 'year')) %>% 
   full_join(y = waste_gen, by = c('country', 'year')) %>% 
   full_join(y = water_abs, by = c('country', 'year')) %>% 
-  full_join(y = wstwater, by = c('country', 'year')) %>% 
+  full_join(y = wstwater, by = c('country', 'year'))
+
+df <- df %>% 
   filter(as.numeric(df$year >= 2012) & as.numeric(df$year <= 2022))
 
 
@@ -122,7 +125,7 @@ plyr::count(df$country)
 
 no_data <- c('Ireland','Italy','Liechtenstein','Switzerland','Iceland',
              'Portugal','Norway','Finland', 'Bosnia and Herzegovina', 
-             'Montenegro', 'North Macedonia', 'Albania')
+             'Montenegro', 'North Macedonia', 'Albania', 'United Kigdom')
 
 df <- df %>% 
   filter(!(country %in% no_data))
@@ -159,6 +162,102 @@ for (i in 2:(nrow(df) - 1)) {
   }
 }
 
+
+  # Multiple Imputation and running the Linear model for panel data
+
+plm
+
+df2 <- df %>% 
+  group_by(country) %>% 
+  filter(!all(is.na(million_m3_abs) | is.na(million_m3_disch)))
+
+df2 <- df2 %>% 
+  mutate(year = as.numeric(year))
+
+df2 <- as.data.frame(df2)
+
+df2 <- df2 %>% 
+  rename(
+    prim_energy_cons = million_ton_oil_eq,
+    solid_wastes = tonnes_waste,
+    freshwater_abs = million_m3_abs,
+    wastewater_dis = million_m3_disch
+  )
+
+
+
+library(Amelia)
+
+imp_df2 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
+
+
+
+missmap(imp_df2)
+View(imp_df2$imputations$imp2)
+
+
+    # Pooled data
+
+lm_amelia_out <- lapply(imp_df2$imputations,
+                        function(data) plm::plm(gdp_growth_rate ~ air_emissions + 
+                                                  prim_energy_cons + 
+                                                  solid_wastes + freshwater_abs +
+                                                  wastewater_dis,
+                                                data = df2, model = 'pooling'))
+summary(lm_amelia_out$imp1)
+summary(lm_amelia_out$imp2)
+summary(lm_amelia_out$imp3)
+summary(lm_amelia_out$imp4)
+summary(lm_amelia_out$imp5)
+
+
+
+
+    # Fixed Effects model
+
+plm_amelia_fe<- lapply(imp_df2$imputations,
+                        function(data) plm::plm(gdp_growth_rate ~ air_emissions + 
+                                                  prim_energy_cons + 
+                                                  solid_wastes + freshwater_abs +
+                                                  wastewater_dis,
+                                                data = df2, model = 'within'))
+
+summary(plm_amelia_fe$imp1)
+summary(plm_amelia_fe$imp2)
+summary(plm_amelia_fe$imp3)
+summary(plm_amelia_fe$imp4)
+summary(plm_amelia_fe$imp5)
+
+    # Compare pool vs fixed effects models
+
+plm::pFtest(plm_amelia_fe$imp1, lm_amelia_out$imp1)
+
+    # Random effects models - different methods
+
+
+
+
+    # Wallace-Hussain method
+
+
+
+    # Amemiya method
+
+
+
+    # Nerlove method
+
+
+
+library(factoextra)
+
+df1_scaled <- scale(df1)
+
+df1_dist <- get_dist(x = df1_scaled, method = 'euclidean')
+
+fviz_dist(dist.obj = df1_dist)
+
+names(df)
 
 
 # Panel data structures ---------------------------------------------------
