@@ -163,50 +163,6 @@ for (i in 2:(nrow(df) - 1)) {
 }
 
 
-  # Multiple Imputation and running the Linear model for panel data
-
-plm
-
-df2 <- df %>% 
-  group_by(country) %>% 
-  filter(!all(is.na(million_m3_abs) | is.na(million_m3_disch)))
-
-df2 <- df2 %>% 
-  mutate(year = as.numeric(year))
-
-df2 <- as.data.frame(df2)
-
-df2 <- df2 %>% 
-  rename(
-    prim_energy_cons = million_ton_oil_eq,
-    solid_wastes = tonnes_waste,
-    freshwater_abs = million_m3_abs,
-    wastewater_dis = million_m3_disch
-  )
-
-
-
-library(Amelia)
-
-imp_df2 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
-
-
-
-missmap(imp_df2)
-View(imp_df2$imputations$imp2)
-
-
-
-library(factoextra)
-
-df1_scaled <- scale(df1)
-
-df1_dist <- get_dist(x = df1_scaled, method = 'euclidean')
-
-fviz_dist(dist.obj = df1_dist)
-
-names(df)
-
 
 # Panel data structures ---------------------------------------------------
 
@@ -302,30 +258,133 @@ plm(model)
 
 
 
+# Clusterisation model ----------------------------------------------------
+
+
+  # Further organising the dataframe  -.-.-.-.-.-.-.-
+
+df2 <- df %>% 
+  group_by(country) %>% 
+  filter(!all(is.na(million_m3_abs) | is.na(million_m3_disch)))
+
+df2 <- df2 %>% 
+  mutate(year = as.numeric(year))
+
+df2 <- as.data.frame(df2)
+
+df2 <- df2 %>% 
+  rename(
+    prim_energy_cons = million_ton_oil_eq,
+    solid_wastes = tonnes_waste,
+    freshwater_abs = million_m3_abs,
+    wastewater_dis = million_m3_disch
+  )
+
+
+  # Multiple Imputation method  -.-.-.-.-.-.-.-
+
+library(Amelia)
+
+    # Multiple imputation to the df2 dataframe
+imp_df2 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
+
+
+missmap(imp_df2)
+View(imp_df2$imputations$imp2)
+
+    # Saving the first imputed dataframe as a new dataframe
+df3 <- imp_df2$imputations$imp1
+
+    # Building the panel data
+df3 <- plm::pdata.frame(x = df3, index = c('country','year'), drop.index = T)
+
+
+
+  # Clusterisation model  -.-.-.-.-.-.-.-
+
+library(factoextra)
+
+df_scaled <- scale(df3)   # Normalising data
+
+df3_dist <- get_dist(x = df_scaled, method = 'euclidean')
+
+# Distances plot
+fviz_dist(dist.obj = df3_dist, gro)
+
+names(df)
+
+
+
+  # Cluster dendrogram
+
+df3_clust <- stats::hclust(d = df3_dist, method = "ward.D2")
+
+factoextra::fviz_dend(x = df3_clust)
+
+
+  # Optimal number of clusters
+
+library(NbClust)
+
+
+n_clust <- NbClust(data = df_scaled, distance = 'euclidean', min.nc = 2, max.nc = 4, 
+        method = 'kmeans', index = 'alllong')
+
+
+
+library(ggplot2)
+library(glue)
+
+
+optimal_clusters <- data.frame(num = n_clust$Best.nc['Number_clusters',])
+freqs.df <- plyr::count(optimal_clusters)
+nk = freqs.df[freqs.df$freq %in% max(freqs.df),1]
+
+
+ggplot(data = plyr::count(optimal_clusters), mapping = aes(x = num, y = freq))+
+  geom_col(fill= 'dodgerblue4', col= 'dodgerblue', lwd= 1)+
+  labs(x= 'Number of clusters k', y= 'Frequency among all indices', 
+       title= glue("Optimal number of clusters - k = {nk}"))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,20,1))+
+  theme_classic()+
+  theme(panel.grid.major = element_line(colour = 'gray'), 
+        plot.title = element_text(margin = margin(b= 12, t= 5), size = 15, 
+                                  face = 'bold'), plot.title.position = 'plot')
+
+
+
+df3$cluster <- as.factor(stats::cutree(tree = df3_clust, k = 2))
+
+
+
+country <- df2$country
+year <- df2$year
+
+
+df3 <- cbind(df3, country, year)
+
+df3 <- df3 %>% 
+  relocate(country, .before = gdp_growth_rate) %>% 
+  relocate(year, .after = country)
+
+
+
 # Plots -------------------------------------------------------------------
 
 
-  # Net GHG emissions -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+# GDP growth rate -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
-ggplot(data = ghg, mapping = aes(x = year, y = ghg_emissions_rate,
-                                 colour = category, group = country)) +
-  geom_line() +
-  geom_text(data = subset(ghg, year == max(year)), aes(label = country), nudge_x = 0.5, nudge_y = 0.1, size = 3, vjust = -0.5) +
-  labs(x = "Year", y = "GDP Growth Rate", color = "Category")
-         
-
-
-ggplot(data = ghg, mapping = aes(x = factor(year), y = ghg_emissions_rate, 
-                                fill = category)) +
+ggplot(data = df3, mapping = aes(x = factor(year), y = gdp_growth_rate, 
+                                 fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(1990, 2021, 1)) +
   scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)),
-                    labels = c('1' = 'Developed', '2' = 'In transition'))+
+                               '2' = alpha('darkolivegreen4', 0.8)))+
   labs(x = '', y = 'Index - 1990 = 100',
-       fill = 'Economic status:',
-       title = 'Net greenhouse gas emissions',
+       fill = 'Cluster:',
+       title = 'GDP growth rate',
        subtitle = 'In developed and in transition economy countries of Europe', 
        caption = '') +
   theme_bw() +
@@ -341,18 +400,46 @@ ggplot(data = ghg, mapping = aes(x = factor(year), y = ghg_emissions_rate,
 
 
 
-  # Primary Energy consumption -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
-ggplot(data = nrgy, mapping = aes(x = factor(year), y = million_ton_oil_eq, 
-                                 fill = category)) +
+  # Net GHG emissions -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+
+
+ggplot(data = df3, mapping = aes(x = factor(year), y = air_emissions, 
+                                fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(1990, 2021, 1)) +
   scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)),
-                    labels = c('1' = 'Developed', '2' = 'In transition'))+
+                               '2' = alpha('darkolivegreen4', 0.8)))+
+  labs(x = '', y = 'Index - 1990 = 100',
+       fill = 'Cluster:',
+       title = 'Net greenhouse gas emissions',
+       subtitle = 'In developed and in transition economy countries of Europe', 
+       caption = '') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+        axis.title.y = element_text(size = 22, hjust = 0.7, 
+                                    margin = margin(r = 4, l = 3, unit = 'pt')),
+        axis.text.y = element_text(size = 20),
+        plot.title.position = 'panel',
+        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
+        legend.position = 'bottom', legend.margin = margin(t = -8),
+        title = element_text(size = 20), legend.text = element_text(size = 18))
+
+x11()
+
+
+  # Primary Energy consumption -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+
+
+ggplot(data = df3, mapping = aes(x = factor(year), y = prim_energy_cons, 
+                                 fill = cluster)) +
+  geom_boxplot(width = 0.7) +
+  scale_x_discrete(breaks = seq(1990, 2021, 1)) +
+  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
+                               '2' = alpha('darkolivegreen4', 0.8)))+
   labs(x = '', y = expression('Oil equivalent  [' *x10^6* ' ton]'),
-       fill = 'Economic status:',
+       fill = 'Clusters:',
        title = 'Primary energy consumption',
        subtitle = 'In developed and in transition economy countries of Europe', 
        caption = '') +
@@ -370,16 +457,15 @@ ggplot(data = nrgy, mapping = aes(x = factor(year), y = million_ton_oil_eq,
 
   # Freshwater abstraction -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
-ggplot(data = water_abs, mapping = aes(x = factor(year), y = million_m3_abs, 
-                                fill = category)) +
+ggplot(data = df3, mapping = aes(x = factor(year), y = freshwater_abs, 
+                                fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(2012, 2022, 1)) +
   scale_y_continuous(labels = scales::label_number(scale = 1/1000))+
   scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)),
-                    labels = c('1' = 'Developed', '2' = 'In transition'))+
+                               '2' = alpha('darkolivegreen4', 0.8)))+
   labs(x = '', y = expression('Water volume [x  ' * 10^9 * m^3 * ']'),
-       fill = 'Economic status',
+       fill = 'Cluster: ',
        title = 'Total waste generation from all NACE activities and households',
        subtitle = 'In developed and in transition economy countries of Europe', 
        caption = 'Incluir info sobre los sectores económicos en el analisis') +
@@ -399,14 +485,13 @@ ggplot(data = water_abs, mapping = aes(x = factor(year), y = million_m3_abs,
   # Waste generation -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
-ggplot(data = waste_gen, mapping = aes(x = factor(year), y = tonnes_waste, 
-                                fill = category)) +
+ggplot(data = df3, mapping = aes(x = factor(year), y = solid_wastes, 
+                                fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(2004, 2020, 1)) +
   scale_y_continuous(labels = scales::label_number(scale = 1/1000000)) +
   scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)),
-                    labels = c('1' = 'Developed', '2' = 'In transition'))+
+                               '2' = alpha('darkolivegreen4', 0.8)))+
   labs(x = '', y = expression('Total waste generation [x  ' * 10^6 * ' t]'),
        fill = 'Economic status',
        title = 'Total waste generation from all NACE activities and households',
@@ -427,16 +512,15 @@ ggplot(data = waste_gen, mapping = aes(x = factor(year), y = tonnes_waste,
   # Wastewater discharge -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
-ggplot(data = wstwater, mapping = aes(x = factor(year), y = million_m3_disch, 
-                                       fill = category)) +
+ggplot(data = df3, mapping = aes(x = factor(year), y = wastewater_dis, 
+                                       fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(2012, 2021, 1)) +
   #scale_y_continuous(labels = scales::label_number(scale = 1/1000000)) +
   scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)),
-                    labels = c('1' = 'Developed', '2' = 'In transition'))+
+                               '2' = alpha('darkolivegreen4', 0.8)))+
   labs(x = '', y = expression('Total waste generation [x  ' * 10^6 * ' t]'),
-       fill = 'Economic status',
+       fill = 'Cluster: ',
        title = 'Total waste generation from all NACE activities and households',
        subtitle = 'In developed and in transition economy countries of Europe', 
        caption = '') +
