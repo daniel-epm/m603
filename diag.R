@@ -196,58 +196,6 @@ missmap(imp_df2)
 View(imp_df2$imputations$imp2)
 
 
-    # Pooled data
-
-lm_amelia_out <- lapply(imp_df2$imputations,
-                        function(data) plm::plm(gdp_growth_rate ~ air_emissions + 
-                                                  prim_energy_cons + 
-                                                  solid_wastes + freshwater_abs +
-                                                  wastewater_dis,
-                                                data = df2, model = 'pooling'))
-summary(lm_amelia_out$imp1)
-summary(lm_amelia_out$imp2)
-summary(lm_amelia_out$imp3)
-summary(lm_amelia_out$imp4)
-summary(lm_amelia_out$imp5)
-
-
-
-
-    # Fixed Effects model
-
-plm_amelia_fe<- lapply(imp_df2$imputations,
-                        function(data) plm::plm(gdp_growth_rate ~ air_emissions + 
-                                                  prim_energy_cons + 
-                                                  solid_wastes + freshwater_abs +
-                                                  wastewater_dis,
-                                                data = df2, model = 'within'))
-
-summary(plm_amelia_fe$imp1)
-summary(plm_amelia_fe$imp2)
-summary(plm_amelia_fe$imp3)
-summary(plm_amelia_fe$imp4)
-summary(plm_amelia_fe$imp5)
-
-    # Compare pool vs fixed effects models
-
-plm::pFtest(plm_amelia_fe$imp1, lm_amelia_out$imp1)
-
-    # Random effects models - different methods
-
-
-
-
-    # Wallace-Hussain method
-
-
-
-    # Amemiya method
-
-
-
-    # Nerlove method
-
-
 
 library(factoextra)
 
