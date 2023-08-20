@@ -486,7 +486,7 @@ df4 <- df4 %>%
 gdp_plot <- ggplot(data = df4, mapping = aes(x = factor(year), y = gdp_growth_rate, 
                                  fill = cluster)) +
   geom_boxplot(width = 0.7) +
-  scale_x_discrete(breaks = seq(1990, 2021, 1)) +
+  scale_x_discrete(breaks = seq(2012, 2021, 1), labels = NULL) +
   scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
                                '2' = alpha('firebrick1', 0.8)))+
   labs(x = '', y = 'Change on previous period [%]',
@@ -496,7 +496,7 @@ gdp_plot <- ggplot(data = df4, mapping = aes(x = factor(year), y = gdp_growth_ra
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
         axis.text.y = element_text(size = 21),
-        legend.position = c(0.07, 0.9), 
+        legend.position = 'top', 
         legend.background = element_rect(colour = 'black'),
         title = element_text(size = 21), legend.text = element_text(size = 22))
 
@@ -516,7 +516,7 @@ View(ghg[ghg['year'] == '2021', ])
 air_emissions_plot <- ggplot(data = df4, 
                              mapping = aes(x = factor(year), y = air_emissions, 
                                 fill = cluster)) +
-  geom_boxplot(width = 0.7) +
+  geom_boxplot(width = 0.7, show.legend = F) +
   scale_x_discrete(breaks = seq(1990, 2021, 1)) +
   scale_y_continuous(limits = c(0, 704000000), 
                      labels = scales::label_number(scale = 1/1000000),
@@ -530,7 +530,6 @@ air_emissions_plot <- ggplot(data = df4,
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
         axis.text.y = element_text(size = 21),
-        legend.position = c(0.07, 0.9), 
         legend.background = element_rect(colour = 'black'),
         title = element_text(size = 21), legend.text = element_text(size = 22))
 
@@ -543,17 +542,17 @@ energ_cons_plot <- ggplot(data = df4,
                           mapping = aes(x = factor(year), y = prim_energy_cons, 
                                  fill = cluster)) +
   geom_boxplot(width = 0.7) +
-  scale_x_discrete(breaks = seq(1990, 2021, 1)) +
+  scale_x_discrete(breaks = seq(2012, 2021, 1), labels = NULL) +
   scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
                                '2' = alpha('firebrick1', 0.8)))+
   labs(x = '', y = expression('Oil equivalent  [' *x10^6* ' ton]'),
-       fill = 'Clusters: ') +
+       fill = 'Cluster: ') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
         axis.text.y = element_text(size = 21),
-        legend.position = c(0.95, 0.92), 
+        legend.position = 'top', 
         legend.background = element_rect(colour = 'black'),
         title = element_text(size = 21), legend.text = element_text(size = 22))
 
@@ -567,7 +566,7 @@ ggsave(filename = "1_energy_consumption.jpg", plot = energ_cons_plot)
 freshwater_abs <- ggplot(data = df4, 
                         mapping = aes(x = factor(year), y = freshwater_abs, 
                                 fill = cluster)) +
-  geom_boxplot(width = 0.7) +
+  geom_boxplot(width = 0.7, show.legend = F) +
   scale_x_discrete(breaks = seq(2012, 2022, 1)) +
   scale_y_continuous(labels = scales::label_number(scale = 1/1000), 
                      breaks = seq(0, 70000, 10000), limits = c(0,65000))+
@@ -580,7 +579,6 @@ freshwater_abs <- ggplot(data = df4,
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
         axis.text.y = element_text(size = 21),
-        legend.position = c(0.07, 0.9), 
         legend.background = element_rect(colour = 'black'),
         title = element_text(size = 21), legend.text = element_text(size = 22))
 
@@ -594,7 +592,7 @@ wastes_plot <- ggplot(data = df4,
                       mapping = aes(x = factor(year), y = solid_wastes, 
                                 fill = cluster)) +
   geom_boxplot(width = 0.7) +
-  scale_x_discrete(breaks = seq(2004, 2021, 1)) +
+  scale_x_discrete(breaks = seq(2004, 2021, 1), labels = NULL) +
   scale_y_continuous(labels = scales::label_number(scale = 1/1000000),
                      limits = c(0,400000000)) +
   scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
@@ -606,7 +604,7 @@ wastes_plot <- ggplot(data = df4,
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
         axis.text.y = element_text(size = 21),
-        legend.position = c(0.85, 0.9), 
+        legend.position = 'top', 
         legend.background = element_rect(colour = 'black'),
         title = element_text(size = 21), legend.text = element_text(size = 22))
 
@@ -619,7 +617,7 @@ ggsave(filename = "1_wastes_gen.jpg", plot = wastes_plot)
 wastewater_plot <- ggplot(data = df4,
                           mapping = aes(x = factor(year), y = wastewater_dis, 
                                        fill = cluster)) +
-  geom_boxplot(width = 0.7) +
+  geom_boxplot(width = 0.7, show.legend = F) +
   scale_x_discrete(breaks = seq(2012, 2021, 1)) +
   scale_y_continuous(labels = scales::label_number(scale = 1/1000), 
                      breaks = seq(0, 6000, 1000)) +
@@ -639,19 +637,23 @@ wastewater_plot <- ggplot(data = df4,
 ggsave(filename = "1_wastewater.jpg", plot = wastewater_plot)
 
 
-x11
+
 
 
 
 library(patchwork)
 
 
+gdp_air <- gdp_plot / air_emissions_plot
+ggsave(filename = '1_gdp_air.jpg', plot = gdp_air)
 
-air_emissions_plot / energ_cons_plot
+nrg_freshwater <- energ_cons_plot / freshwater_abs
+ggsave(filename = '1_nrg_freshw.jpg', plot = nrg_freshwater)
+
+waste_w <- wastes_plot / wastewater_plot
+ggsave(filename = '1_waste_w.jpg', plot = waste_w)
 
 
-
-
-
+dev.off()
 
 
