@@ -125,7 +125,7 @@ plyr::count(df$country)
 
 no_data <- c('Ireland','Italy','Liechtenstein','Switzerland','Iceland',
              'Portugal','Norway','Finland', 'Bosnia and Herzegovina', 
-             'Montenegro', 'North Macedonia', 'Albania', 'United Kigdom')
+             'Montenegro', 'North Macedonia', 'Albania')
 
 df <- df %>% 
   filter(!(country %in% no_data))
@@ -175,7 +175,7 @@ str(df1)
 head(df1)
 
 
-df1 <- df1 %>% 
+df <- df %>% 
   rename(
     prim_energy_cons = million_ton_oil_eq,
     solid_wastes = tonnes_waste,
@@ -191,8 +191,20 @@ df_pool <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                                       wastewater_dis,
                     data = df1, model = 'pooling')
 
-summary(df_pool)
+df3_pool <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                      solid_wastes + freshwater_abs +
+                      wastewater_dis,
+                    data = df3, model = 'pooling')
 
+sum <- summary(df_pool)
+summary(df3_pool)
+
+data.frame(Pr_t = sum$coefficients[,'Pr(>|t|)'])
+
+
+sum$coefficients
+
+xtable::xtable(sum$coefficients)
 
 
   # Fixed Effects model
@@ -202,7 +214,15 @@ df_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                     wastewater_dis,
                   data = df1, model = 'within')
 
+df3_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                    solid_wastes + freshwater_abs +
+                    wastewater_dis,
+                  data = df3, model = 'within')
+
 summary(df_fe)
+
+sum_fe <- summary(df3_fe)
+
 
 
 
@@ -210,17 +230,18 @@ summary(df_fe)
 
 plm::pFtest(df_fe, df_pool)
 
+plm::pFtest(df3_fe, df3_pool)
 
 
   # Random effects models - different methods
   
     # Wallace-Hussain method
-df_re_walhus <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+df3_re_walhus <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
                       solid_wastes + freshwater_abs +
                       wastewater_dis,
-                      data = df1, model = 'random', random.method = 'walhus')
+                      data = df3, model = 'random', random.method = 'walhus')
 
-summary(df_re_walhus)
+sum_re1 <- summary(df3_re_walhus)
 
 
     # Amemiya method
@@ -230,7 +251,14 @@ df_re_amemiya <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                             wastewater_dis,
                           data = df1, model = 'random', random.method = 'amemiya')
 
+df3_re_amemiya <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                            solid_wastes + freshwater_abs +
+                            wastewater_dis,
+                          data = df3, model = 'random', random.method = 'amemiya')
+
 summary(df_re_amemiya)
+
+sum_re2 <- summary(df3_re_amemiya)
 
 
     # Nerlove method
@@ -238,9 +266,16 @@ summary(df_re_amemiya)
 df_re_nerlove <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
                             solid_wastes + freshwater_abs +
                             wastewater_dis,
-                          data = df1, model = 'random', random.method = 'nerlove')
+                          data = df, model = 'random', random.method = 'nerlove')
+
+df3_re_nerlove <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                            solid_wastes + freshwater_abs +
+                            wastewater_dis,
+                          data = df3, model = 'random', random.method = 'nerlove')
 
 summary(df_re_nerlove)
+
+sum_re3 <- summary(df3_re_nerlove)
 
 
   # Hausman test: checking models' consistency
@@ -248,12 +283,40 @@ summary(df_re_nerlove)
     # Null hypothesis - Ho: Random effects model is consistent
     # Alternative hypothesis - Ha: Fixed effects model is consistent
 
-plm::phtest(df_re_walhus, df_fe)
-plm::phtest(df_re_amemiya, df_fe)
-plm::phtest(df_re_nerlove, df_fe)
+plm::phtest(df3_re_walhus, df3_fe)
+plm::phtest(df3_re_amemiya, df3_fe)
+plm::phtest(df3_re_nerlove, df3_fe)
   
 
 plm(model)
+
+
+
+      # Opening a dataframe for the p-values of each model
+
+p.values <- data.frame(matrix(nrow = 6))
+
+p.values$fixed_effects <- numeric(6)
+  
+p.values[2:nrow(p.values), 'fixed_effects'] <- round(sum_fe$coefficients[,4], 4)
+p.values[1, 'fixed_effects'] <- NA
+
+p.values$matrix.nrow...6. <- NULL
+
+p.values$rand_effects_walhus <- round(sum_re1$coefficients[,4], 4)
+
+p.values$rand_effects_amemiya <- round(sum_re2$coefficients[,4], 4)
+
+p.values$rand_effects_nerlove <- round(sum_re3$coefficients[,4], 4)
+
+row.names(p.values) <- row.names(sum_re1$coefficients)
+
+xtable::xtable(p.values)
+
+
+sum_fe$r.squared[1]
+
+sum_fe$fstatistic[6]
 
 
 
@@ -265,7 +328,7 @@ plm(model)
 
 df2 <- df %>% 
   group_by(country) %>% 
-  filter(!all(is.na(million_m3_abs) | is.na(million_m3_disch)))
+  filter(!all(is.na(freshwater_abs) | is.na(wastewater_dis)))
 
 df2 <- df2 %>% 
   mutate(year = as.numeric(year))
@@ -286,30 +349,34 @@ df2 <- df2 %>%
 library(Amelia)
 
     # Multiple imputation to the df2 dataframe
-imp_df2 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
+imp_df3 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
 
 
-missmap(imp_df2)
+missmap(imp_df3)
 View(imp_df2$imputations$imp2)
 
     # Saving the first imputed dataframe as a new dataframe
-df3 <- imp_df2$imputations$imp1
+df4 <- imp_df3$imputations$imp1
+
+df4['']
 
     # Building the panel data
-df3 <- plm::pdata.frame(x = df3, index = c('country','year'), drop.index = T)
+df4 <- plm::pdata.frame(x = df4, index = c('country','year'), drop.index = T)
 
-
+df4 <- na.omit(df4)
 
   # Clusterisation model  -.-.-.-.-.-.-.-
 
 library(factoextra)
 
-df_scaled <- scale(df3)   # Normalising data
+
+
+df_scaled <- scale(df4)   # Normalising data
 
 df3_dist <- get_dist(x = df_scaled, method = 'euclidean')
 
 # Distances plot
-fviz_dist(dist.obj = df3_dist, gro)
+fviz_dist(dist.obj = df3_dist)
 
 names(df)
 
@@ -321,6 +388,33 @@ df3_clust <- stats::hclust(d = df3_dist, method = "ward.D2")
 
 factoextra::fviz_dend(x = df3_clust)
 
+
+
+cluster_table <- table(df4$country, df4$cluster)
+cluster_matrix <- as.matrix(cluster_table)
+dist_matrix <- dist(cluster_matrix)
+hierarchical_clustering <- hclust(dist_matrix)
+
+library(dendextend)
+
+horizontal_dendrogram <- as.dendrogram(hierarchical_clustering)
+
+
+plot(horizontal_dendrogram, horiz = T, xlab = "", ylab = "")
+
+
+country_clust <- factoextra::fviz_dend(hierarchical_clustering, k= 3, labels_track_height= 70, 
+                      ylab= "", main= "", palette= "Accent", lwd = 1.8, cex = 1.5, 
+                      label_cols= 'black', type = 'rectangle', horiz= TRUE, 
+                      ggtheme= theme_void()) +
+  guides(x = "none")
+
+ggsave(filename = "country_clust.jpeg", plot = country_clust)
+
+
+
+RColorBrewer::display.brewer.all()
+x11()
 
   # Optimal number of clusters
 
@@ -354,19 +448,23 @@ ggplot(data = plyr::count(optimal_clusters), mapping = aes(x = num, y = freq))+
 
 
 
-df3$cluster <- as.factor(stats::cutree(tree = df3_clust, k = 2))
+df4$cluster <- as.factor(stats::cutree(tree = df3_clust, k = 2))
 
 
 
-country <- df2$country
-year <- df2$year
 
+country <- df2[1:(nrow(df2) - 2),'country']
+year <- df2[1:(nrow(df2) - 2),'year']
 
-df3 <- cbind(df3, country, year)
+nrow(df2)
+nrow(df4)
 
-df3 <- df3 %>% 
+df4 <- cbind(df4, country, year)
+
+df4 <- df4 %>% 
   relocate(country, .before = gdp_growth_rate) %>% 
   relocate(year, .after = country)
+
 
 
 
@@ -537,3 +635,4 @@ ggplot(data = df3, mapping = aes(x = factor(year), y = wastewater_dis,
 
 
 
+dev.off()
