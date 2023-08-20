@@ -219,9 +219,14 @@ df3_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                     wastewater_dis,
                   data = df3, model = 'within')
 
-summary(df_fe)
+df4_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
+                     solid_wastes + freshwater_abs +
+                     wastewater_dis,
+                   data = df4, model = 'within')
 
-sum_fe <- summary(df3_fe)
+summary(df3_fe)
+
+sum_fe <- summary(df4_fe)
 
 
 
@@ -273,7 +278,7 @@ df3_re_nerlove <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons +
                             wastewater_dis,
                           data = df3, model = 'random', random.method = 'nerlove')
 
-summary(df_re_nerlove)
+summary(df4_re_nerlove)
 
 sum_re3 <- summary(df3_re_nerlove)
 
@@ -403,18 +408,22 @@ horizontal_dendrogram <- as.dendrogram(hierarchical_clustering)
 plot(horizontal_dendrogram, horiz = T, xlab = "", ylab = "")
 
 
-country_clust <- factoextra::fviz_dend(hierarchical_clustering, k= 3, labels_track_height= 70, 
-                      ylab= "", main= "", palette= "Accent", lwd = 1.8, cex = 1.5, 
-                      label_cols= 'black', type = 'rectangle', horiz= TRUE, 
+country_clust <- factoextra::fviz_dend(hierarchical_clustering, k= 5, 
+                                       labels_track_height= 70, ylab= "", 
+                                       main= "", palette= "Accent", lwd = 1.8, 
+                                       cex = 1.5, label_cols= 'black', 
+                                       type = 'rectangle', horiz= F, 
                       ggtheme= theme_void()) +
   guides(x = "none")
 
-ggsave(filename = "country_clust.jpeg", plot = country_clust)
+
+ggsave(filename = "country_clust2.jpeg", plot = country_clust)
 
 
 
 RColorBrewer::display.brewer.all()
 x11()
+dev.off()
 
   # Optimal number of clusters
 
@@ -474,165 +483,175 @@ df4 <- df4 %>%
 # GDP growth rate -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
-ggplot(data = df3, mapping = aes(x = factor(year), y = gdp_growth_rate, 
+gdp_plot <- ggplot(data = df4, mapping = aes(x = factor(year), y = gdp_growth_rate, 
                                  fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(1990, 2021, 1)) +
-  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)))+
-  labs(x = '', y = 'Index - 1990 = 100',
-       fill = 'Cluster:',
-       title = 'GDP growth rate',
-       subtitle = 'In developed and in transition economy countries of Europe', 
-       caption = '') +
+  scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
+                               '2' = alpha('firebrick1', 0.8)))+
+  labs(x = '', y = 'Change on previous period [%]',
+       fill = 'Cluster: ') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
-        axis.text.y = element_text(size = 20),
-        plot.title.position = 'panel',
-        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8),
-        title = element_text(size = 20), legend.text = element_text(size = 18))
+        axis.text.y = element_text(size = 21),
+        legend.position = c(0.07, 0.9), 
+        legend.background = element_rect(colour = 'black'),
+        title = element_text(size = 21), legend.text = element_text(size = 22))
+
+
+ggsave(filename = "1_gdp.jpg", plot = gdp_plot)
 
 
 
 
+# Air emissions -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
 
-  # Net GHG emissions -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+min(ghg$air_emissions, na.rm = T)
 
+View(ghg[ghg['year'] == '2021', ])
 
-ggplot(data = df3, mapping = aes(x = factor(year), y = air_emissions, 
+air_emissions_plot <- ggplot(data = df4, 
+                             mapping = aes(x = factor(year), y = air_emissions, 
                                 fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(1990, 2021, 1)) +
-  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)))+
-  labs(x = '', y = 'Index - 1990 = 100',
-       fill = 'Cluster:',
-       title = 'Net greenhouse gas emissions',
-       subtitle = 'In developed and in transition economy countries of Europe', 
-       caption = '') +
+  scale_y_continuous(limits = c(0, 704000000), 
+                     labels = scales::label_number(scale = 1/1000000),
+                     breaks = seq(0, 705000000, 100000000)) +
+  scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
+                               '2' = alpha('firebrick1', 0.8))) +
+  labs(x = '', y = expression('Ton  '  * CO[2]),
+       fill = 'Cluster:') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
-        axis.text.y = element_text(size = 20),
-        plot.title.position = 'panel',
-        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8),
-        title = element_text(size = 20), legend.text = element_text(size = 18))
+        axis.text.y = element_text(size = 21),
+        legend.position = c(0.07, 0.9), 
+        legend.background = element_rect(colour = 'black'),
+        title = element_text(size = 21), legend.text = element_text(size = 22))
 
-x11()
+ggsave(filename = "1_air_emissions.jpg", plot = air_emissions_plot)
 
 
   # Primary Energy consumption -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
-
-ggplot(data = df3, mapping = aes(x = factor(year), y = prim_energy_cons, 
+energ_cons_plot <- ggplot(data = df4, 
+                          mapping = aes(x = factor(year), y = prim_energy_cons, 
                                  fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(1990, 2021, 1)) +
-  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)))+
+  scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
+                               '2' = alpha('firebrick1', 0.8)))+
   labs(x = '', y = expression('Oil equivalent  [' *x10^6* ' ton]'),
-       fill = 'Clusters:',
-       title = 'Primary energy consumption',
-       subtitle = 'In developed and in transition economy countries of Europe', 
-       caption = '') +
+       fill = 'Clusters: ') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
-        axis.text.y = element_text(size = 20),
-        plot.title.position = 'panel',
-        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8),
-        title = element_text(size = 20), legend.text = element_text(size = 18))
+        axis.text.y = element_text(size = 21),
+        legend.position = c(0.95, 0.92), 
+        legend.background = element_rect(colour = 'black'),
+        title = element_text(size = 21), legend.text = element_text(size = 22))
+
+
+ggsave(filename = "1_energy_consumption.jpg", plot = energ_cons_plot)
 
 
 
   # Freshwater abstraction -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
-ggplot(data = df3, mapping = aes(x = factor(year), y = freshwater_abs, 
+freshwater_abs <- ggplot(data = df4, 
+                        mapping = aes(x = factor(year), y = freshwater_abs, 
                                 fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(2012, 2022, 1)) +
-  scale_y_continuous(labels = scales::label_number(scale = 1/1000))+
-  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)))+
-  labs(x = '', y = expression('Water volume [x  ' * 10^9 * m^3 * ']'),
-       fill = 'Cluster: ',
-       title = 'Total waste generation from all NACE activities and households',
-       subtitle = 'In developed and in transition economy countries of Europe', 
-       caption = 'Incluir info sobre los sectores económicos en el analisis') +
+  scale_y_continuous(labels = scales::label_number(scale = 1/1000), 
+                     breaks = seq(0, 70000, 10000), limits = c(0,65000))+
+  scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
+                               '2' = alpha('firebrick1', 0.8)))+
+  labs(x = '', y = expression('Water volume  [x  ' * 10^9 * m^3 * ']'),
+       fill = 'Cluster: ') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
-        axis.text.y = element_text(size = 20),
-        plot.title.position = 'panel',
-        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8),
-        title = element_text(size = 20), legend.text = element_text(size = 18))
+        axis.text.y = element_text(size = 21),
+        legend.position = c(0.07, 0.9), 
+        legend.background = element_rect(colour = 'black'),
+        title = element_text(size = 21), legend.text = element_text(size = 22))
 
 
+ggsave(filename = "1_freshwater_abs.jpg", plot = freshwater_abs)
 
 
   # Waste generation -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
-
-ggplot(data = df3, mapping = aes(x = factor(year), y = solid_wastes, 
+wastes_plot <- ggplot(data = df4, 
+                      mapping = aes(x = factor(year), y = solid_wastes, 
                                 fill = cluster)) +
   geom_boxplot(width = 0.7) +
-  scale_x_discrete(breaks = seq(2004, 2020, 1)) +
-  scale_y_continuous(labels = scales::label_number(scale = 1/1000000)) +
-  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)))+
+  scale_x_discrete(breaks = seq(2004, 2021, 1)) +
+  scale_y_continuous(labels = scales::label_number(scale = 1/1000000),
+                     limits = c(0,400000000)) +
+  scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
+                               '2' = alpha('firebrick1', 0.8)))+
   labs(x = '', y = expression('Total waste generation [x  ' * 10^6 * ' t]'),
-       fill = 'Economic status',
-       title = 'Total waste generation from all NACE activities and households',
-       subtitle = 'In developed and in transition economy countries of Europe', caption = 'Hazardous and Non-Hazardous wastes') +
+       fill = 'Cluster: ') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
-        axis.text.y = element_text(size = 20),
-        plot.title.position = 'panel',
-        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8),
-        title = element_text(size = 20), legend.text = element_text(size = 18))
+        axis.text.y = element_text(size = 21),
+        legend.position = c(0.85, 0.9), 
+        legend.background = element_rect(colour = 'black'),
+        title = element_text(size = 21), legend.text = element_text(size = 22))
 
 
+ggsave(filename = "1_wastes_gen.jpg", plot = wastes_plot)
 
 
   # Wastewater discharge -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
-
-ggplot(data = df3, mapping = aes(x = factor(year), y = wastewater_dis, 
+wastewater_plot <- ggplot(data = df4,
+                          mapping = aes(x = factor(year), y = wastewater_dis, 
                                        fill = cluster)) +
   geom_boxplot(width = 0.7) +
   scale_x_discrete(breaks = seq(2012, 2021, 1)) +
-  #scale_y_continuous(labels = scales::label_number(scale = 1/1000000)) +
-  scale_fill_manual(values = c('1' = alpha('firebrick1', 0.7), 
-                               '2' = alpha('darkolivegreen4', 0.8)))+
-  labs(x = '', y = expression('Total waste generation [x  ' * 10^6 * ' t]'),
-       fill = 'Cluster: ',
-       title = 'Total waste generation from all NACE activities and households',
-       subtitle = 'In developed and in transition economy countries of Europe', 
-       caption = '') +
+  scale_y_continuous(labels = scales::label_number(scale = 1/1000), 
+                     breaks = seq(0, 6000, 1000)) +
+  scale_fill_manual(values = c('1' = alpha('darkolivegreen4', 0.7), 
+                               '2' = alpha('firebrick1', 0.8)))+
+  labs(x = '', y = expression('Wastewater volume  [x  ' * 10^9 * m^3 * ']'),
+       fill = 'Cluster: ') +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 50, size = 19, vjust = 0.4),
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
         axis.title.y = element_text(size = 22, hjust = 0.7, 
                                     margin = margin(r = 4, l = 3, unit = 'pt')),
-        axis.text.y = element_text(size = 20),
-        plot.title.position = 'panel',
-        plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8),
-        title = element_text(size = 20), legend.text = element_text(size = 18))
+        axis.text.y = element_text(size = 21),
+        legend.position = 'bottom', legend.margin = margin(t = -15, b = 10),
+        title = element_text(size = 21), legend.text = element_text(size = 22))
+
+
+ggsave(filename = "1_wastewater.jpg", plot = wastewater_plot)
+
+
+x11
+
+
+
+library(patchwork)
+
+
+
+air_emissions_plot / energ_cons_plot
 
 
 
 
-dev.off()
+
+
+
