@@ -175,13 +175,14 @@ str(df1)
 head(df1)
 
 
-df <- df %>% 
+df1 <- df %>% 
   rename(
     prim_energy_cons = million_ton_oil_eq,
     solid_wastes = tonnes_waste,
     freshwater_abs = million_m3_abs,
     wastewater_dis = million_m3_disch
   )
+
 
 
   # Pooled data
@@ -212,22 +213,17 @@ xtable::xtable(sum$coefficients)
 df_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
                     solid_wastes + freshwater_abs +
                     wastewater_dis,
-                  data = df1, model = 'within')
+                  data = df2, model = 'within')
 
 df3_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
                     solid_wastes + freshwater_abs +
                     wastewater_dis,
                   data = df3, model = 'within')
 
-df4_fe <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
-                     solid_wastes + freshwater_abs +
-                     wastewater_dis,
-                   data = df4, model = 'within')
 
-summary(df3_fe)
+summary(df_fe)
 
-sum_fe <- summary(df4_fe)
-
+sum_fe <- summary(df3_fe)
 
 
 
@@ -271,7 +267,7 @@ sum_re2 <- summary(df3_re_amemiya)
 df_re_nerlove <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
                             solid_wastes + freshwater_abs +
                             wastewater_dis,
-                          data = df, model = 'random', random.method = 'nerlove')
+                          data = df1, model = 'random', random.method = 'nerlove')
 
 df3_re_nerlove <- plm::plm(gdp_growth_rate ~ air_emissions + prim_energy_cons + 
                             solid_wastes + freshwater_abs +
@@ -291,11 +287,9 @@ sum_re3 <- summary(df3_re_nerlove)
 plm::phtest(df3_re_walhus, df3_fe)
 plm::phtest(df3_re_amemiya, df3_fe)
 plm::phtest(df3_re_nerlove, df3_fe)
-  
-
-plm(model)
 
 
+phtes
 
       # Opening a dataframe for the p-values of each model
 
@@ -319,10 +313,8 @@ row.names(p.values) <- row.names(sum_re1$coefficients)
 xtable::xtable(p.values)
 
 
-sum_fe$r.squared[1]
 
-sum_fe$fstatistic[6]
-
+p.values[,c(2:4)]
 
 
 
@@ -331,7 +323,7 @@ sum_fe$fstatistic[6]
 
   # Further organising the dataframe  -.-.-.-.-.-.-.-
 
-df2 <- df %>% 
+df2 <- df1 %>% 
   group_by(country) %>% 
   filter(!all(is.na(freshwater_abs) | is.na(wastewater_dis)))
 
@@ -354,21 +346,23 @@ df2 <- df2 %>%
 library(Amelia)
 
     # Multiple imputation to the df2 dataframe
-imp_df3 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
+imp_df2 <- amelia(x = df2, m = 5, ts = 'year', cs = 'country')
+
+imp_df1 <- amelia(x = df1, m = 5, ts = 'year', cs = 'country')
 
 
-missmap(imp_df3)
+missmap(imp_df2)
 View(imp_df2$imputations$imp2)
 
     # Saving the first imputed dataframe as a new dataframe
-df4 <- imp_df3$imputations$imp1
+df3 <- imp_df2$imputations$imp1
 
-df4['']
+
 
     # Building the panel data
-df4 <- plm::pdata.frame(x = df4, index = c('country','year'), drop.index = T)
+df3 <- plm::pdata.frame(x = df3, index = c('country','year'), drop.index = T)
 
-df4 <- na.omit(df4)
+
 
   # Clusterisation model  -.-.-.-.-.-.-.-
 
@@ -376,7 +370,7 @@ library(factoextra)
 
 
 
-df_scaled <- scale(df4)   # Normalising data
+df_scaled <- scale(df3)   # Normalising data
 
 df3_dist <- get_dist(x = df_scaled, method = 'euclidean')
 
@@ -465,10 +459,16 @@ df4$cluster <- as.factor(stats::cutree(tree = df3_clust, k = 2))
 country <- df2[1:(nrow(df2) - 2),'country']
 year <- df2[1:(nrow(df2) - 2),'year']
 
-nrow(df2)
-nrow(df4)
 
-df4 <- cbind(df4, country, year)
+country <- df3[1:(nrow(df3)),'country']
+year <- df3[1:(nrow(df3)),'year']
+
+
+
+nrow(df2)
+nrow(df3)
+
+df4 <- cbind(df3, country, year)
 
 df4 <- df4 %>% 
   relocate(country, .before = gdp_growth_rate) %>% 
@@ -655,5 +655,109 @@ ggsave(filename = '1_waste_w.jpg', plot = waste_w)
 
 
 dev.off()
+
+
+
+df4 <- df4[,1:8]
+
+names(df3)
+
+
+
+gdp %>% 
+  filter(country %in% c('Poland','Germany','France','Spain','Turkey',
+                        'United Kingdom')) %>% 
+  ggplot(aes(x = year, y = gdp_growth_rate, colour = country, group= country)) +
+  geom_line(lwd = 2)
+
+
+
+ghg %>% 
+  filter(country %in% c('Poland','Germany','France','Spain','Turkey',
+                        'United Kingdom')) %>% 
+  ggplot(aes(x = year, y = air_emissions, colour = country, group= country)) +
+  geom_line(lwd = 2)
+
+
+
+waste_gen %>% 
+  filter(country %in% c('Poland','Germany','France','Spain','Turkey',
+                        'United Kingdom')) %>% 
+  ggplot(aes(x = year, y = tonnes_waste, colour = country, group= country)) +
+  geom_line(lwd = 2)
+
+
+
+water_abs %>% 
+  filter(country %in% c('Poland','Germany','France','Spain','Turkey',
+                        'United Kingdom')) %>% 
+  ggplot(aes(x = year, y = million_m3_abs, colour = country, group= country)) +
+  geom_line(lwd = 2)
+
+
+
+wstwater %>% 
+  filter(country %in% c('Poland','Germany','France','Spain','Turkey',
+                        'United Kingdom')) %>% 
+  ggplot(aes(x = year, y = million_m3_disch, colour = country, group= country)) +
+  geom_line(lwd = 2)
+
+
+
+# Population --------------------------------------------------------------
+
+
+setwd('D:/Daniel/msc_applied_ds/t3_dissertation/data/diagnosis/')
+
+library(readr)
+
+popul <- read_csv('population.csv', skip = 4)
+
+
+pop.df <- popul %>% 
+  select('Country Name', `2012`:`2021`) %>% 
+  rename(country = 'Country Name') %>% 
+  filter(country %in% unique(df1$country) | country == 'Turkiye' | 
+           country == 'Slovak Republic') %>% 
+  pivot_longer(cols = `2012`:`2021`, names_to = 'year', 
+               values_to = 'population')
+
+
+pop.df <- pop.df %>% 
+  mutate(cluster = if_else(country %in% cluster.a, 'A', 'B'), 
+         year = as.numeric(year))
+
+pop_plot <- pop.df %>% 
+  group_by(cluster, year) %>% 
+  summarise(tot_pop = sum(population)) %>% 
+  ggplot(aes(x = year, y = tot_pop, colour = cluster,
+             group = cluster)) +
+  geom_line(lwd = 2) +
+  scale_x_continuous(breaks = seq(2012,2021,1)) +
+  scale_y_continuous(labels = scales::label_number(scale = 1/1000000),
+                     breaks = seq(220000000, 320000000, 20000000)) +
+  scale_color_manual(values = c("A" = "firebrick1", "B" = "darkolivegreen4")) +
+  labs(x = '', y = "Population [x million inhabitants]",
+       colour = 'Cluster: ') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4),
+        axis.title.y = element_text(size = 22, hjust = 0.7, 
+                                    margin = margin(r = 4, l = 3, unit = 'pt')),
+        axis.text.y = element_text(size = 21),
+        legend.position = 'bottom', legend.margin = margin(t = -15, b = 10),
+        title = element_text(size = 21), legend.text = element_text(size = 22)) +
+  guides(colour = guide_legend(override.aes = list(size = 8)))
+  
+colour = guide_legend(override.aes = list(linetype = 1, size = 8))
+
+
+cluster.a <- c('Germany','France','Spain','Turkey','Poland','United Kingdom')
+
+x11()
+
+
+
+
+
 
 

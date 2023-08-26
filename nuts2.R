@@ -129,7 +129,9 @@ RColorBrewer::display.brewer.all()
 
   # Plot 1 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
-gdp_nuts2 %>% 
+
+
+gdp_nuts_plot <- gdp_nuts2 %>% 
   filter(geop_entity %in% top8) %>% 
   ggplot(aes(x = year, y = gdp_nuts2, colour = state, 
              group = geop_entity)) +
@@ -139,12 +141,13 @@ gdp_nuts2 %>%
             position = position_nudge(y = c(-5000,5000)),
             check_overlap = T, vjust = 0.5, hjust = 0.05, size = 6, 
             show.legend = F) +
-  coord_cartesian(xlim = c(min(gdp_nuts2$year), max(gdp_nuts2$year) + 0.7))+
+  coord_cartesian(xlim = c(min(gdp_nuts2$year), max(gdp_nuts2$year) + 0.7)) +
   scale_x_continuous(breaks = seq(2000, 2021,1))+
   scale_colour_brewer(palette = 'Set1', direction = 1)+
   scale_y_continuous(breaks = seq(75000,300000,20000), 
                      labels = scales::label_number(scale = 1/1000))+
-  labs(x = '', y = expression('Billion  \u20AC'), colour = 'State: ') +
+  labs(x = '', y = expression('Billion  \u20AC'), colour = 'State: ',
+       caption = '') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
@@ -153,20 +156,27 @@ gdp_nuts2 %>%
         axis.text.y = element_text(size = 20),
         plot.title.position = 'panel',
         plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
-        legend.position = 'bottom', legend.margin = margin(t = -8, b = 12),
+        legend.position = 'right', legend.margin = margin(t = -8, b = 12),
         title = element_text(size = 20), legend.text = element_text(size = 18),
-        panel.background = element_rect(fill = 'gray80')) +
+        panel.background = element_rect(fill = 'gray80'),
+        plot.caption = element_text(size = 20), plot.caption.position = 'plot') +
   guides(colour = guide_legend(override.aes = list(linetype = 1, size = 8)))
 
+
+ggsave(filename = "gdp_nuts2.jpg", gdp_nuts_plot)
 
 
   # Plot 2 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 
+library(plm)
 
 gdp_nuts2 <- gdp_nuts2 %>%
-  group_by(geop_entity) %>%
-  arrange(geop_entity, year) %>%
-  mutate(gdp_growth_rate = (gdp_nuts2-lag(gdp_nuts2))/lag(gdp_nuts2) * 100,
+  arrange(geop_entity, year)
+  
+gdp_nuts2 %>% 
+  group_by(geop_entity) %>% 
+  mutate(gdp_growth_rate = (gdp_nuts2 - plm::lag(gdp_nuts2)) / 
+           plm::lag(gdp_nuts2) * 100,
          combined_label = paste(geop_entity, " - ", state))
 
 
@@ -217,7 +227,7 @@ top8_pov_risk <- pov_risk %>%
 top8_pov_risk <- top8_pov_risk[top8_pov_risk != 'Trier']
 
 
-pov_risk %>% 
+pov_risk_plot <- pov_risk %>% 
   filter(geop_entity %in% top8_pov_risk) %>% 
   ggplot(mapping = aes(x = year, y = poverty_risk, colour = state,
                        group = geop_entity)) +
@@ -239,7 +249,8 @@ pov_risk %>%
   coord_cartesian(xlim = c(min(pov_risk$year), max(pov_risk$year) + 0.3)) +
   scale_y_continuous(breaks = seq(12,30, 1), limits = c(12,20)) +
   scale_colour_brewer(palette = 'Set1') +
-  labs(x = "", y = "Poverty and social exclusion risk [%]", colour = 'State') +
+  labs(x = "", y = "Poverty and social exclusion risk [%]", colour = 'State',
+       caption = '') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 0, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
@@ -250,7 +261,8 @@ pov_risk %>%
         plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
         legend.position = 'right', legend.margin = margin(t = -8),
         title = element_text(size = 20), legend.text = element_text(size = 19), 
-        panel.background = element_rect(fill = 'gray82')) +
+        panel.background = element_rect(fill = 'gray82'),
+        plot.caption = element_text(size = 20), plot.caption.position = 'plot') +
   guides(colour = guide_legend(override.aes = list(linetype = 1, size = 8)))
   
   
@@ -272,7 +284,7 @@ unemployment <- unemployment %>%
   ungroup()
 
 
-unemployment %>% 
+unemployment_plot <- unemployment %>% 
   ggplot(mapping = aes(x = year, y = unempl_rate, colour = state, 
                        group = geop_entity)) +
   geom_line(lwd = 1.2) +
@@ -292,7 +304,7 @@ unemployment %>%
                           max(unemployment$year) + 2.5)) +
   scale_x_continuous(breaks = seq(2000,2022,2)) +
   scale_y_continuous(breaks = seq(2,8,1)) +
-  labs(x = "", y = "Unemployment rate [%]", colour = "State") +
+  labs(x = "", y = "Unemployment rate [%]", colour = "State", caption = '') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
@@ -303,7 +315,8 @@ unemployment %>%
         plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
         legend.position = 'right', legend.margin = margin(t = -8),
         title = element_text(size = 20), legend.text = element_text(size = 19), 
-        panel.background = element_rect(fill = 'gray82')) +
+        panel.background = element_rect(fill = 'gray82'), 
+        plot.caption = element_text(size = 20), plot.caption.position = 'plot') +
   guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
     
 
@@ -322,7 +335,7 @@ agric_acc <- agric_acc %>%
 
 
 
-agric_acc %>% 
+agric_plot <- agric_acc %>% 
   ggplot(aes(x = year, y = agriculture_accounts, colour = state, 
              group = geop_entity)) +
   geom_line(lwd = 2) +
@@ -347,7 +360,7 @@ agric_acc %>%
   scale_y_continuous(breaks = seq(2000,7500,500), 
                      labels = label_number(scale = 1/1000, accuracy = 0.1)) +
   labs(x = "", y = expression("Economic accounts for agriculture [billion €]"), 
-       colour = "State") +
+       colour = "State", caption = '') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
@@ -358,7 +371,8 @@ agric_acc %>%
         plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
         legend.position = 'right', legend.margin = margin(t = -8),
         title = element_text(size = 20), legend.text = element_text(size = 19), 
-        panel.background = element_rect(fill = 'gray82')) +
+        panel.background = element_rect(fill = 'gray82'),
+        plot.caption = element_text(size = 20), plot.caption.position = 'plot') +
   guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
   
 
@@ -386,7 +400,7 @@ quantile(educ_train$educ_train, probs = 0.55)
 
 
 
-educ_train %>% 
+educ_train_plot <- educ_train %>% 
   ggplot(aes(x = year, y = educ_train, colour = state, group = geop_entity)) +
   geom_line(lwd = 2) +
   geom_text(data =  filter(educ_train, last_year == TRUE & 
@@ -415,7 +429,7 @@ educ_train %>%
   scale_x_continuous(breaks = seq(2000,2022,2)) +
   scale_y_continuous(breaks = seq(4,13,1)) +
   labs(x = "", y = "Participation rate in education and training [%]", 
-       colour = "State") +
+       colour = "State", caption = '') +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
@@ -426,7 +440,8 @@ educ_train %>%
         plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
         legend.position = 'right', legend.margin = margin(t = -8),
         title = element_text(size = 20), legend.text = element_text(size = 19), 
-        panel.background = element_rect(fill = 'gray82')) +
+        panel.background = element_rect(fill = 'gray82'),
+        plot.caption = element_text(size = 20), plot.caption.position = 'plot') +
   guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
 
 
@@ -445,12 +460,12 @@ freight_tr <- freight_tr %>%
   arrange(geop_entity, year) %>% 
   filter(all(freight_transport > 5)) 
 
-freight_tr %>% 
+freight_tr_plot <- freight_tr %>% 
   group_by(geop_entity) %>% 
   filter(all(c(2010:2021) %in% year)) %>% 
   ggplot(aes(x = year, y = freight_transport, colour = state, 
              group = geop_entity))+
-  geom_line(lwd = 1) +
+  geom_line(lwd = 1.4) +
   geom_text(data = filter(freight_tr, last_year == T & 
                             (geop_entity %in% c('Düsseldorf','Hamburg'))),
             mapping = aes(label = geop_entity), size = 7, show.legend = F,
@@ -465,7 +480,7 @@ freight_tr %>%
   coord_cartesian(xlim = c(min(freight_tr$year) + 0.5,
                            max(freight_tr$year + 1.3))) +
   labs(x = "", y = "Air transport of freight [x1000 ton]", 
-       colour = "State") +
+       colour = "State", caption = "") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 20, size = 19, vjust = 0.4,
                                    margin = margin(b = 15)),
@@ -476,8 +491,39 @@ freight_tr %>%
         plot.subtitle = element_text(size = 11, margin = margin(b = 8)),
         legend.position = 'right', legend.margin = margin(t = -8),
         title = element_text(size = 20), legend.text = element_text(size = 19), 
-        panel.background = element_rect(fill = 'gray82')) +
+        panel.background = element_rect(fill = 'gray82'),
+        plot.caption = element_text(size = 20), plot.caption.position = 'plot') +
   guides(colour = guide_legend(override.aes = list(lty = 1, size = 9)))
+
+
+
+library(patchwork)
+
+
+gdp_nuts_plot
+ggsave("2_gdp_nuts.jpg", plot = gdp_nuts_plot)
+
+freight_tr_plot
+ggsave("2_freight_tr.jpg", plot = freight_tr_plot)
+
+educ_train_plot
+ggsave("2_educ_train.jpg", plot = educ_train_plot)
+
+agric_plot
+ggsave("2_agric.jpg", plot = agric_plot)
+
+pov_risk_plot 
+ggsave("2_pov_risk.jpg", plot = pov_risk_plot)
+
+unemployment_plot
+ggsave("2_unemployment.jpg", plot = unemployment_plot)
+
+
+dev.off()
+
+
+
+
 
 
 
